@@ -40,6 +40,14 @@ func Register(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// ---- JWT ----
+	newToken, tErr := BuildJWTString(user.ID)
+	if tErr != nil {
+		MakeErrResponse(&w, http.StatusInternalServerError, "")
+		log.Println(tErr)
+		return
+	}
+	w.Header().Set("Authorization", "Bearer "+newToken)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(strconv.Itoa(user.ID)))
 }
