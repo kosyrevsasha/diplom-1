@@ -6,7 +6,6 @@ import (
 	"diplom-1/cmd/gophermart/internal/config"
 	"diplom-1/cmd/gophermart/internal/handler"
 	"diplom-1/cmd/gophermart/internal/repository"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v4"
 	"net/http"
@@ -39,7 +38,6 @@ func authMiddleware(next http.Handler) http.Handler {
 		jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
 			return []byte(config.Secretkey), nil
 		})
-		fmt.Println(claims.ExpiresAt)
 		if claims.ExpiresAt.Time.Before(time.Now()) {
 			handler.MakeErrResponse(&w, http.StatusUnauthorized, "Token expired")
 			return

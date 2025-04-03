@@ -5,6 +5,7 @@ import (
 	"diplom-1/cmd/gophermart/internal/repository"
 	"encoding/json"
 	"errors"
+	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/theplant/luhn"
 	"io"
@@ -117,6 +118,7 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 		MakeErrResponse(&w, code, saveErr.Error())
 		return
 	}
+	fmt.Printf("\n ---SAVED: number %s", orderNum)
 
 	order := buildOrder(orderNum)
 	accrual.RegisterOrder(order)
@@ -133,6 +135,7 @@ func UserOrders(db repository.Repository, w http.ResponseWriter, r *http.Request
 	}
 
 	res, marshErr := json.Marshal(orders)
+	fmt.Printf(string(res))
 	if marshErr == nil {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusOK)
