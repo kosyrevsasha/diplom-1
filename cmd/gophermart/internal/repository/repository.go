@@ -214,7 +214,7 @@ func (db *DB) SaveOrder(userID int, orderNum string) (int, error) {
 
 	userOrder := UserOrder{}
 	sErr := row.Scan(&userOrder.OrderID, &userOrder.UserID)
-	if !errors.Is(sql.ErrNoRows, sErr) {
+	if !errors.Is(sErr, sql.ErrNoRows) {
 		if userOrder.UserID == userID {
 			return http.StatusOK, errors.New("номер заказа уже был загружен этим пользователем")
 		} else {

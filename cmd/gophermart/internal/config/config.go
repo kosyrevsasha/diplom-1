@@ -10,7 +10,7 @@ type Config struct {
 	ServerAddress string `env:"RUN_ADDRESS"`
 	DataBase      string `env:"DATABASE_URI"`
 	Accrual       string `env:"ACCRUAL_SYSTEM_ADDRESS"`
-	TokenKey      string
+	TokenKey      int
 }
 
 const (
@@ -22,7 +22,7 @@ const (
 	TokenExp           = time.Hour * 3
 	// TODO: вынести в env
 	Secretkey = "secret"
-	TokenKey  = "userId"
+	TokenKey  = iota
 )
 
 var ProcessConfig Config
