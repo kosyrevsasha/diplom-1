@@ -73,7 +73,7 @@ func BuildRouter(db repository.Repository, worker *accrual.Worker) chi.Router {
 				r.Post("/orders", func(w http.ResponseWriter, r *http.Request) { handler.ProcessOrder(db, w, r, worker) })
 				r.Get("/orders", func(w http.ResponseWriter, r *http.Request) { handler.UserOrders(db, w, r) })
 				r.Get("/balance", func(w http.ResponseWriter, r *http.Request) { handler.UserBalance(db, w, r) })
-				r.Get("/balance/withdraw", func(w http.ResponseWriter, r *http.Request) { handler.Withdraw(db, w, r) })
+				r.Post("/balance/withdraw", func(w http.ResponseWriter, r *http.Request) { handler.Withdraw(db, w, r) })
 				r.Get("/withdrawals", func(w http.ResponseWriter, r *http.Request) { handler.Withdraws(db, w, r) })
 			})
 		})
