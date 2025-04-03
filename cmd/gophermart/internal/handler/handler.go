@@ -41,7 +41,7 @@ func Register(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strconv.Itoa(user.Id)))
+	w.Write([]byte(strconv.Itoa(user.ID)))
 }
 
 func Login(db repository.Repository, w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,7 @@ func Login(db repository.Repository, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// ---- JWT ----
-	newToken, tErr := BuildJWTString(user.Id)
+	newToken, tErr := BuildJWTString(user.ID)
 	if tErr != nil {
 		MakeErrResponse(&w, http.StatusInternalServerError, "")
 		log.Println(tErr)
@@ -82,7 +82,7 @@ func Login(db repository.Repository, w http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Request, worker *accrual.Worker) {
-	userId := getUserId(r)
+	userID := getUserID(r)
 
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -104,7 +104,7 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 		return
 	}
 	orderNum := strconv.Itoa(number)
-	code, saveErr := db.SaveOrder(orderNum, userId)
+	code, saveErr := db.SaveOrder(userID, orderNum)
 	if saveErr != nil {
 		MakeErrResponse(&w, code, saveErr.Error())
 		return
@@ -118,7 +118,7 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 }
 
 func UserOrders(db repository.Repository, w http.ResponseWriter, r *http.Request) {
-	orders, err := db.FindUserOrders(getUserId(r))
+	orders, err := db.FindUserOrders(getUserID(r))
 	if err != nil {
 		MakeErrResponse(&w, http.StatusInternalServerError, err.Error())
 		return
@@ -135,7 +135,7 @@ func UserOrders(db repository.Repository, w http.ResponseWriter, r *http.Request
 }
 
 func UserBalance(db repository.Repository, w http.ResponseWriter, r *http.Request) {
-	balance, err := db.GetUserBalance(getUserId(r))
+	balance, err := db.GetUserBalance(getUserID(r))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -165,7 +165,7 @@ func Withdraw(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 	if !luhn.Valid(number) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	}
-	balance, err := db.GetUserBalance(getUserId(r))
+	balance, err := db.GetUserBalance(getUserID(r))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -176,7 +176,7 @@ func Withdraw(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	orderNum := strconv.Itoa(number)
-	code, err := db.MakeWithdraw(orderNum, wdr.Sum, getUserId(r))
+	code, err := db.MakeWithdraw(orderNum, wdr.Sum, getUserID(r))
 	if err != nil {
 		MakeErrResponse(&w, code, err.Error())
 		return
@@ -186,7 +186,7 @@ func Withdraw(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 }
 
 func Withdraws(db repository.Repository, w http.ResponseWriter, r *http.Request) {
-	wdrws, err := db.GetUserWithdrawals(getUserId(r))
+	wdrws, err := db.GetUserWithdrawals(getUserID(r))
 	if err != nil {
 		MakeErrResponse(&w, http.StatusInternalServerError, err.Error())
 		return

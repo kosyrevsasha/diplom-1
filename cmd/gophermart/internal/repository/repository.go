@@ -22,20 +22,20 @@ var (
 )
 
 type User struct {
-	Id int `json:"id"`
+	ID int `json:"id"`
 	Credentials
 }
 
 type Order struct {
-	Id         string    `json:"number"`
+	ID         string    `json:"number"`
 	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 type UserOrder struct {
-	UserId  int    `json:"user_id"`
-	OrderId string `json:"order_id"`
+	UserID  int    `json:"user_id"`
+	OrderID string `json:"order_id"`
 }
 
 type Balance struct {
@@ -81,7 +81,7 @@ type Repository interface {
 	CreateUser(Credentials) (User, error)
 	FindUser(Credentials) (User, error)
 	FindUserOrders(int) ([]Order, error)
-	SaveOrder(string, int) (int, error)
+	SaveOrder(int, string) (int, error)
 	UpdateOrder(ProcessedOrder) error
 	GetUserBalance(int) (Balance, error)
 	MakeWithdraw(string, float64, int) (int, error)
@@ -109,7 +109,7 @@ func (db *DB) Init() {
 
 	var script string
 	scanner := bufio.NewScanner(sqlFile)
-	for ok := scanner.Scan(); ok != false; ok = scanner.Scan() {
+	for scanner.Scan() {
 		bytes := scanner.Bytes()
 		script += string(bytes)
 	}
@@ -145,7 +145,7 @@ func (db *DB) CreateUser(creds Credentials) (User, error) {
 	row := pgdb.QueryRow("SELECT * FROM users WHERE login = $1;", creds.Login)
 
 	var user User
-	errScan := row.Scan(&user.Id, &user.Login, &user.Password)
+	errScan := row.Scan(&user.ID, &user.Login, &user.Password)
 	if errScan != nil || row == nil {
 		log.Println(errScan)
 		return User{}, errors.New("user not found")
@@ -159,7 +159,7 @@ func (db *DB) FindUser(creds Credentials) (User, error) {
 	var user User
 
 	row := pgdb.QueryRow("SELECT * FROM users WHERE login = $1 AND password = $2;", creds.Login, creds.Password)
-	errScan := row.Scan(&user.Id, &user.Login, &user.Password)
+	errScan := row.Scan(&user.ID, &user.Login, &user.Password)
 	if errScan != nil || row == nil {
 		log.Println(errScan)
 		return User{}, errors.New("неверная пара логин/пароль")
@@ -178,16 +178,21 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 		"ORDER BY o.uploaded_at DESC"
 
 	rows, qerr := pgdb.Query(query, id)
-	defer rows.Close()
 	if qerr != nil {
 		return nil, qerr
 	}
+	err := rows.Err()
+	if err != nil {
+		return nil, qerr
+	}
+	defer rows.Close()
+
 	var orders []Order
 
 	for rows.Next() {
 		var order Order
 		var accrual sql.NullFloat64
-		err := rows.Scan(&order.Id, &order.Status, &accrual, &order.UploadedAt)
+		err := rows.Scan(&order.ID, &order.Status, &accrual, &order.UploadedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +205,7 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 	return orders, nil
 }
 
-func (db *DB) SaveOrder(orderNum string, userId int) (int, error) {
+func (db *DB) SaveOrder(userID int, orderNum string) (int, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	var pgErr *pgconn.PgError
@@ -208,9 +213,9 @@ func (db *DB) SaveOrder(orderNum string, userId int) (int, error) {
 	row := pgdb.QueryRow("SELECT order_id, user_id FROM user_orders WHERE order_id = $1", orderNum)
 
 	userOrder := UserOrder{}
-	sErr := row.Scan(&userOrder.OrderId, &userOrder.UserId)
+	sErr := row.Scan(&userOrder.OrderID, &userOrder.UserID)
 	if !errors.Is(sql.ErrNoRows, sErr) {
-		if userOrder.UserId == userId {
+		if userOrder.UserID == userID {
 			return http.StatusOK, errors.New("номер заказа уже был загружен этим пользователем")
 		} else {
 			return http.StatusConflict, errors.New("номер заказа уже был загружен другим пользователем")
@@ -226,7 +231,7 @@ func (db *DB) SaveOrder(orderNum string, userId int) (int, error) {
 		}
 	}
 
-	_, qErr = pgdb.Exec("INSERT INTO user_orders (user_id, order_id) VALUES ($1, $2)", userId, orderNum)
+	_, qErr = pgdb.Exec("INSERT INTO user_orders (user_id, order_id) VALUES ($1, $2)", userID, orderNum)
 	if qErr != nil {
 		return http.StatusInternalServerError, qErr
 	}
@@ -246,7 +251,7 @@ func (db *DB) UpdateOrder(order ProcessedOrder) error {
 	return nil
 }
 
-func (db *DB) GetUserBalance(userId int) (Balance, error) {
+func (db *DB) GetUserBalance(userID int) (Balance, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 
@@ -258,7 +263,7 @@ func (db *DB) GetUserBalance(userId int) (Balance, error) {
 
 	query := "SELECT (" + baseQuery + "FALSE " + ") as accruals, (" + baseQuery + "TRUE" + ") as withdrawals"
 
-	row := pgdb.QueryRow(query, userId)
+	row := pgdb.QueryRow(query, userID)
 	var (
 		accruals    sql.NullFloat64
 		withdrawals sql.NullFloat64
@@ -273,7 +278,7 @@ func (db *DB) GetUserBalance(userId int) (Balance, error) {
 	return b, nil
 }
 
-func (db *DB) MakeWithdraw(orderNum string, sum float64, userId int) (int, error) {
+func (db *DB) MakeWithdraw(orderNum string, sum float64, userID int) (int, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	var pgErr *pgconn.PgError
@@ -287,7 +292,7 @@ func (db *DB) MakeWithdraw(orderNum string, sum float64, userId int) (int, error
 		}
 	}
 
-	_, qErr = pgdb.Exec("INSERT INTO user_orders (user_id, order_id) VALUES ($1, $2)", userId, orderNum)
+	_, qErr = pgdb.Exec("INSERT INTO user_orders (user_id, order_id) VALUES ($1, $2)", userID, orderNum)
 	if qErr != nil {
 		return http.StatusInternalServerError, qErr
 	}
@@ -295,7 +300,7 @@ func (db *DB) MakeWithdraw(orderNum string, sum float64, userId int) (int, error
 	return http.StatusOK, nil
 }
 
-func (db *DB) GetUserWithdrawals(userId int) ([]Withdrawal, error) {
+func (db *DB) GetUserWithdrawals(userID int) ([]Withdrawal, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 
@@ -304,11 +309,15 @@ func (db *DB) GetUserWithdrawals(userId int) ([]Withdrawal, error) {
 		"WHERE uo.user_id = $1 AND o.withdrawal IS TRUE " +
 		"ORDER BY o.uploaded_at DESC"
 
-	rows, qerr := pgdb.Query(query, userId)
-	defer rows.Close()
+	rows, qerr := pgdb.Query(query, userID)
 	if qerr != nil {
 		return nil, qerr
 	}
+	err := rows.Err()
+	if err != nil {
+		return nil, qerr
+	}
+	defer rows.Close()
 	wdrs := []Withdrawal{}
 
 	for rows.Next() {

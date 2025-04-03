@@ -10,17 +10,19 @@ type Config struct {
 	ServerAddress string `env:"RUN_ADDRESS"`
 	DataBase      string `env:"DATABASE_URI"`
 	Accrual       string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+	TokenKey      string
 }
 
 const (
 	defaultDataBase    = "postgres://go:1@localhost:5432/go_diplom1?sslmode=disable"
 	defaultServAddr    = ":8080"
-	defaultBaseUrl     = "http://localhost"
+	defaultBaseURL     = "http://localhost"
 	defaultBasePort    = ":8080"
 	defaultAccrualPort = ":99"
 	TokenExp           = time.Hour * 3
 	// TODO: вынести в env
 	Secretkey = "secret"
+	TokenKey  = "userId"
 )
 
 var ProcessConfig Config
@@ -53,10 +55,12 @@ func Init() error {
 
 	// Accural
 	if ProcessConfig.Accrual == "" && *accrualArg == "" {
-		ProcessConfig.Accrual = defaultBaseUrl + defaultAccrualPort
+		ProcessConfig.Accrual = defaultBaseURL + defaultAccrualPort
 	} else if *accrualArg != "" {
-		ProcessConfig.Accrual = defaultBaseUrl + *accrualArg
+		ProcessConfig.Accrual = defaultBaseURL + *accrualArg
 	}
+
+	ProcessConfig.TokenKey = TokenKey
 
 	return nil
 }

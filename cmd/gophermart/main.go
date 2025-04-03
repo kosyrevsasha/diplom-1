@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	worker := accrual.Worker{make(chan string)}
+	worker := accrual.Worker{CheckChanel: make(chan string)}
 	go worker.Run(db)
 
 	serverErr := http.ListenAndServe(config.ProcessConfig.ServerAddress, router.BuildRouter(db, &worker))

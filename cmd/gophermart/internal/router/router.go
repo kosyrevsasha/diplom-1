@@ -50,7 +50,7 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userId", claims.UserID)
+		ctx := context.WithValue(r.Context(), config.ProcessConfig.TokenKey, claims.UserID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -80,30 +80,3 @@ func BuildRouter(db repository.Repository, worker *accrual.Worker) chi.Router {
 	})
 	return r
 }
-
-//func BuildJWTString(id int) (string, error) {
-//	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-//		RegisteredClaims: jwt.RegisteredClaims{
-//			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.TokenExp)),
-//		},
-//		UserID: id,
-//	})
-//
-//	tokenString, err := token.SignedString([]byte(config.SecretKey))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	return tokenString, nil
-//}
-
-//func GetUserIdFromToken(r *http.Request) int {
-//	token, _ := r.Cookie(config.CookieName)
-//	tokenString := token.Value
-//	claims := &Claims{}
-//	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-//		return []byte(config.SecretKey), nil
-//	})
-//
-//	return claims.UserID
-//}

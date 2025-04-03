@@ -63,8 +63,8 @@ func MakeErrResponse(w *http.ResponseWriter, code int, message string) {
 	}
 }
 
-func getUserId(r *http.Request) int {
-	return r.Context().Value("userId").(int)
+func getUserID(r *http.Request) int {
+	return r.Context().Value(config.ProcessConfig.TokenKey).(int)
 }
 
 // TODO: валидировать номер ?
@@ -80,7 +80,7 @@ func buildOrder(number string) accrual.Order {
 	reward := accrual.Rewards[key]
 
 	var goods []accrual.Good
-	goods = append(goods, accrual.Good{reward.Match, float64(price)})
+	goods = append(goods, accrual.Good{Description: reward.Match, Price: float64(price)})
 
 	order := accrual.Order{
 		Number: number,
