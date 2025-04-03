@@ -102,7 +102,7 @@ func (db *DB) Init() {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 
-	sqlFile, err := os.OpenFile("internal/repository/db.sql", os.O_RDONLY, 0666)
+	sqlFile, err := os.OpenFile("../internal/repository/db.sql", os.O_RDONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
