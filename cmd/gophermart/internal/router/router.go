@@ -15,11 +15,6 @@ import (
 )
 
 type (
-	responseData struct {
-		status int
-		size   int
-	}
-
 	Claims struct {
 		jwt.RegisteredClaims
 		UserID int

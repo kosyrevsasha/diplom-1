@@ -2,7 +2,6 @@ package accrual
 
 import (
 	"diplom-1/cmd/gophermart/internal/repository"
-	"fmt"
 )
 
 type Worker struct {
@@ -15,7 +14,6 @@ type Result struct {
 
 func (w *Worker) Run(db repository.Repository) {
 	for number := range w.CheckChanel {
-		fmt.Printf("____%s___", number)
 		order := CheckOrder(number)
 		if order.Status == repository.PROCESSING {
 			w.CheckChanel <- number

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"diplom-1/cmd/gophermart/internal/config"
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -174,7 +173,7 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 
 	query := "SELECT o.id as number, o.status, o.accrual, o.uploaded_at  FROM orders o " +
 		"LEFT JOIN user_orders uo ON uo.order_id = o.id " +
-		"WHERE uo.user_id = $1 AND o.withdrawal IS FALSE " +
+		"WHERE uo.user_id = $1 " +
 		"ORDER BY o.uploaded_at DESC"
 
 	rows, qerr := pgdb.Query(query, id)
@@ -242,7 +241,6 @@ func (db *DB) SaveOrder(userID int, orderNum string) (int, error) {
 func (db *DB) UpdateOrder(order ProcessedOrder) error {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
-	fmt.Println(order)
 	_, qErr := pgdb.Exec("UPDATE orders SET accrual = $1, status = $2 WHERE id = $3", order.Accrual, order.Status, order.Number)
 	if qErr != nil {
 		return qErr
