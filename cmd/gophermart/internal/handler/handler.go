@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"diplom-1/cmd/gophermart/internal/accrual"
 	"diplom-1/cmd/gophermart/internal/repository"
 	"encoding/json"
 	"errors"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/theplant/luhn"
 	"io"
 	"log"
 	"net/http"
@@ -79,7 +81,7 @@ func Login(db repository.Repository, w http.ResponseWriter, r *http.Request) {
 	// ---- ----
 }
 
-func ProcessOrders(db repository.Repository, w http.ResponseWriter, r *http.Request) {
+func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Request, worker *accrual.Worker) {
 	userId := getUserId(r)
 
 	body, err := io.ReadAll(r.Body)
@@ -97,15 +99,20 @@ func ProcessOrders(db repository.Repository, w http.ResponseWriter, r *http.Requ
 	}
 
 	// TODO: проверять
-	//if !luhn.Valid(number) {
-	//	MakeErrResponse(&w, http.StatusUnprocessableEntity, "неверный формат номера заказа")
-	//	return
-	//}
-
-	code, saveErr := db.SaveOrder(number, userId)
+	if !luhn.Valid(number) {
+		MakeErrResponse(&w, http.StatusUnprocessableEntity, "неверный формат номера заказа")
+		return
+	}
+	orderNum := strconv.Itoa(number)
+	code, saveErr := db.SaveOrder(orderNum, userId)
 	if saveErr != nil {
 		MakeErrResponse(&w, code, saveErr.Error())
+		return
 	}
+
+	order := buildOrder(orderNum)
+	accrual.RegisterOrder(order)
+	worker.CheckChanel <- orderNum
 
 	w.WriteHeader(code)
 }
@@ -151,13 +158,13 @@ func Withdraw(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	orderNum, err := strconv.Atoi(wdr.Order)
+	number, err := strconv.Atoi(wdr.Order)
 	if err != nil {
 		MakeErrResponse(&w, http.StatusBadRequest, err.Error())
 	}
-	//if !luhn.Valid(orderNum) {
-	//	w.WriteHeader(http.StatusUnprocessableEntity)
-	//}
+	if !luhn.Valid(number) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	}
 	balance, err := db.GetUserBalance(getUserId(r))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -168,7 +175,7 @@ func Withdraw(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 		MakeErrResponse(&w, http.StatusPaymentRequired, "на счету недостаточно средств")
 		return
 	}
-
+	orderNum := strconv.Itoa(number)
 	code, err := db.MakeWithdraw(orderNum, wdr.Sum, getUserId(r))
 	if err != nil {
 		MakeErrResponse(&w, code, err.Error())

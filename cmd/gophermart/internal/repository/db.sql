@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE UNIQUE INDEX IF NOT EXISTS user_login_idx ON users (login);
 
 CREATE TABLE IF NOT EXISTS public.orders (
-    id bigint NOT NULL,
+    id character varying NOT NULL,
     status character varying,
     accrual real DEFAULT 0,
     uploaded_at timestamp without time zone DEFAULT now(),
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 
 CREATE TABLE IF NOT EXISTS public.user_orders (
     user_id integer NOT NULL,
-    order_id bigint NOT NULL,
+    order_id character varying NOT NULL,
     CONSTRAINT fk_user_id FOREIGN KEY (user_id)
     REFERENCES public.users (id) MATCH SIMPLE,
     CONSTRAINT fk_order_id FOREIGN KEY (order_id)

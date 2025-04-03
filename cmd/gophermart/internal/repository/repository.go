@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"diplom-1/cmd/gophermart/internal/config"
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -26,16 +27,15 @@ type User struct {
 }
 
 type Order struct {
-	Id      int     `json:"number"`
-	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual,omitempty"`
-	// TODO: преобразоывыать отдельно?
+	Id         string    `json:"number"`
+	Status     string    `json:"status"`
+	Accrual    float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 type UserOrder struct {
-	UserId  int `json:"user_id"`
-	OrderId int `json:"order_id"`
+	UserId  int    `json:"user_id"`
+	OrderId string `json:"order_id"`
 }
 
 type Balance struct {
@@ -71,13 +71,20 @@ type WithdrawRequest struct {
 	Sum   float64 `json:"sum"`
 }
 
+type ProcessedOrder struct {
+	Number  string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual,omitempty"`
+}
+
 type Repository interface {
 	CreateUser(Credentials) (User, error)
 	FindUser(Credentials) (User, error)
 	FindUserOrders(int) ([]Order, error)
-	SaveOrder(int, int) (int, error)
+	SaveOrder(string, int) (int, error)
+	UpdateOrder(ProcessedOrder) error
 	GetUserBalance(int) (Balance, error)
-	MakeWithdraw(int, float64, int) (int, error)
+	MakeWithdraw(string, float64, int) (int, error)
 	GetUserWithdrawals(int) ([]Withdrawal, error)
 }
 
@@ -175,7 +182,7 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 	if qerr != nil {
 		return nil, qerr
 	}
-	orders := []Order{}
+	var orders []Order
 
 	for rows.Next() {
 		var order Order
@@ -193,7 +200,7 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 	return orders, nil
 }
 
-func (db *DB) SaveOrder(orderNum int, userId int) (int, error) {
+func (db *DB) SaveOrder(orderNum string, userId int) (int, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	var pgErr *pgconn.PgError
@@ -213,7 +220,7 @@ func (db *DB) SaveOrder(orderNum int, userId int) (int, error) {
 	_, qErr := pgdb.Exec("INSERT INTO orders (id, status) VALUES ($1, $2)", orderNum, NEW)
 	if qErr != nil {
 		if errors.As(qErr, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return http.StatusConflict, nil
+			return http.StatusConflict, qErr
 		} else {
 			return http.StatusInternalServerError, qErr
 		}
@@ -225,6 +232,18 @@ func (db *DB) SaveOrder(orderNum int, userId int) (int, error) {
 	}
 
 	return http.StatusAccepted, nil
+}
+
+func (db *DB) UpdateOrder(order ProcessedOrder) error {
+	pgdb := db.getPgdb()
+	defer pgdb.Close()
+	fmt.Println(order)
+	_, qErr := pgdb.Exec("UPDATE orders SET accrual = $1, status = $2 WHERE id = $3", order.Accrual, order.Status, order.Number)
+	if qErr != nil {
+		return qErr
+	}
+
+	return nil
 }
 
 func (db *DB) GetUserBalance(userId int) (Balance, error) {
@@ -254,7 +273,7 @@ func (db *DB) GetUserBalance(userId int) (Balance, error) {
 	return b, nil
 }
 
-func (db *DB) MakeWithdraw(orderNum int, sum float64, userId int) (int, error) {
+func (db *DB) MakeWithdraw(orderNum string, sum float64, userId int) (int, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	var pgErr *pgconn.PgError

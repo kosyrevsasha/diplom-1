@@ -3,12 +3,14 @@ package handler
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"diplom-1/cmd/gophermart/internal/accrual"
 	"diplom-1/cmd/gophermart/internal/config"
 	"diplom-1/cmd/gophermart/internal/repository"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v4"
 	"io"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -68,4 +70,21 @@ func getUserId(r *http.Request) int {
 // TODO: валидировать номер ?
 func validateNumber(number int) error {
 	return nil
+}
+
+func buildOrder(number string) accrual.Order {
+	price := rand.Intn(50000)
+
+	c := len(accrual.Rewards)
+	key := rand.Intn(c - 1)
+	reward := accrual.Rewards[key]
+
+	var goods []accrual.Good
+	goods = append(goods, accrual.Good{reward.Match, float64(price)})
+
+	order := accrual.Order{
+		Number: number,
+		Goods:  goods,
+	}
+	return order
 }

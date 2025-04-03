@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"diplom-1/cmd/gophermart/internal/accrual"
 	"diplom-1/cmd/gophermart/internal/config"
 	"diplom-1/cmd/gophermart/internal/handler"
 	"diplom-1/cmd/gophermart/internal/repository"
@@ -55,7 +56,7 @@ func authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func BuildRouter(db repository.Repository) chi.Router {
+func BuildRouter(db repository.Repository, worker *accrual.Worker) chi.Router {
 	r := chi.NewRouter()
 
 	// public routes
@@ -69,7 +70,7 @@ func BuildRouter(db repository.Repository) chi.Router {
 		r.Use(authMiddleware)
 		r.Route("/api", func(r chi.Router) {
 			r.Route("/user", func(r chi.Router) {
-				r.Post("/orders", func(w http.ResponseWriter, r *http.Request) { handler.ProcessOrders(db, w, r) })
+				r.Post("/orders", func(w http.ResponseWriter, r *http.Request) { handler.ProcessOrder(db, w, r, worker) })
 				r.Get("/orders", func(w http.ResponseWriter, r *http.Request) { handler.UserOrders(db, w, r) })
 				r.Get("/balance", func(w http.ResponseWriter, r *http.Request) { handler.UserBalance(db, w, r) })
 				r.Get("/balance/withdraw", func(w http.ResponseWriter, r *http.Request) { handler.Withdraw(db, w, r) })
