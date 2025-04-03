@@ -135,7 +135,7 @@ func UserOrders(db repository.Repository, w http.ResponseWriter, r *http.Request
 	}
 
 	res, marshErr := json.Marshal(orders)
-	fmt.Printf(string(res))
+	fmt.Println(string(res))
 	if marshErr == nil {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusOK)
