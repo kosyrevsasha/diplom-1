@@ -197,7 +197,7 @@ func (db *DB) FindUserOrders(id int) ([]Order, error) {
 			return nil, err
 		}
 		if accrual.Valid {
-			order.Accrual = roundFloat(accrual.Float64, 1)
+			order.Accrual = roundFloat(accrual.Float64, 2)
 		}
 		orders = append(orders, order)
 	}
@@ -274,7 +274,7 @@ func (db *DB) GetUserBalance(userID int) (Balance, error) {
 		return Balance{}, err
 	}
 	currentBalance := accruals.Float64 - withdrawals.Float64
-	b := Balance{roundFloat(currentBalance, 1), withdrawals.Float64}
+	b := Balance{roundFloat(currentBalance, 2), withdrawals.Float64}
 	return b, nil
 }
 
@@ -328,7 +328,7 @@ func (db *DB) GetUserWithdrawals(userID int) ([]Withdrawal, error) {
 			return nil, err
 		}
 		if accrual.Valid {
-			w.Sum = roundFloat(accrual.Float64, 1)
+			w.Sum = roundFloat(accrual.Float64, 2)
 		}
 		wdrs = append(wdrs, w)
 	}

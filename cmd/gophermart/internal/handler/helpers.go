@@ -67,11 +67,6 @@ func getUserID(r *http.Request) int {
 	return r.Context().Value(config.ProcessConfig.TokenKey).(int)
 }
 
-// TODO: валидировать номер ?
-func validateNumber(number int) error {
-	return nil
-}
-
 func buildOrder(number string) accrual.Order {
 	price := rand.Intn(50000)
 
