@@ -6,20 +6,11 @@ import (
 	"diplom-1/cmd/gophermart/internal/repository"
 	"diplom-1/cmd/gophermart/internal/router"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 )
 
 func main() {
 	fmt.Println("---Starting---")
-	dir, err1 := os.Getwd()
-	if err1 != nil {
-		log.Println(err1)
-	} else {
-		log.Println(dir)
-	}
-
 	initErr := config.Init()
 	if initErr != nil {
 		panic(initErr)

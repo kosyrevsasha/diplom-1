@@ -23,6 +23,6 @@ CREATE TABLE IF NOT EXISTS public.user_orders (
     REFERENCES public.orders (id) MATCH SIMPLE
 );
 
-ALTER TABLE IF EXISTS public.users OWNER to go;
-ALTER TABLE IF EXISTS public.orders OWNER to go;
-ALTER TABLE IF EXISTS public.user_orders OWNER to go;
+-- ALTER TABLE IF EXISTS public.users OWNER to go;
+-- ALTER TABLE IF EXISTS public.orders OWNER to go;
+-- ALTER TABLE IF EXISTS public.user_orders OWNER to go;
