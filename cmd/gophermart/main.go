@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"diplom-1/cmd/gophermart/internal/accrual"
 	"diplom-1/cmd/gophermart/internal/config"
 	"diplom-1/cmd/gophermart/internal/repository"
@@ -22,18 +23,18 @@ func main() {
 	}
 
 	fmt.Println("---Ready---")
-
 	err := accrual.RegisterRewards(accrual.Rewards)
 	if err != nil {
 		panic(err)
 	}
 
+	ctx := context.Background()
 	worker := accrual.Worker{CheckChanel: make(chan string)}
-	go worker.Run(db)
+	go worker.Run(ctx, db)
 
 	serverErr := http.ListenAndServe(config.ProcessConfig.ServerAddress, router.BuildRouter(db, &worker))
 	if serverErr != nil {
 		panic(serverErr)
 	}
-
+	<-ctx.Done()
 }

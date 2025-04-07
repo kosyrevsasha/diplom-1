@@ -12,6 +12,7 @@ type Config struct {
 	ServerAddress string `env:"RUN_ADDRESS"`
 	DataBase      string `env:"DATABASE_URI"`
 	Accrual       string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+	Secretkey     string `env:"JWT_KEY"`
 	TokenKey      ctxKey
 }
 
@@ -21,9 +22,8 @@ const (
 	defaultBaseURL     = "http://localhost"
 	defaultBasePort    = ":8080"
 	defaultAccrualPort = ":99"
+	defaultSecretkey   = "secret"
 	TokenExp           = time.Hour * 3
-	// TODO: вынести в env
-	Secretkey = "secret"
 )
 
 var ProcessConfig Config
@@ -38,6 +38,7 @@ func Init() error {
 	serverAddressArg := flag.String("a", "", "server address in format host:port")
 	dbArg := flag.String("d", "", "database connection")
 	accrualArg := flag.String("r", "", "path to accrual system")
+	secretKeyArg := flag.String("k", "", "secret key")
 	flag.Parse()
 
 	// ServerAddress
@@ -59,6 +60,13 @@ func Init() error {
 		ProcessConfig.Accrual = defaultBaseURL + defaultAccrualPort
 	} else if *accrualArg != "" {
 		ProcessConfig.Accrual = defaultBaseURL + *accrualArg
+	}
+
+	// SecretKey
+	if ProcessConfig.Secretkey == "" && *secretKeyArg == "" {
+		ProcessConfig.Secretkey = defaultSecretkey
+	} else if *secretKeyArg != "" {
+		ProcessConfig.Secretkey = *secretKeyArg
 	}
 
 	return nil

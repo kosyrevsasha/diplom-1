@@ -36,7 +36,7 @@ func authMiddleware(next http.Handler) http.Handler {
 
 		claims := &Claims{}
 		jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
-			return []byte(config.Secretkey), nil
+			return []byte(config.ProcessConfig.Secretkey), nil
 		})
 		if claims.ExpiresAt.Time.Before(time.Now()) {
 			handler.MakeErrResponse(&w, http.StatusUnauthorized, "Token expired")

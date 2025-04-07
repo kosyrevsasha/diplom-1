@@ -1,14 +1,12 @@
 package handler
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"diplom-1/cmd/gophermart/internal/accrual"
 	"diplom-1/cmd/gophermart/internal/config"
 	"diplom-1/cmd/gophermart/internal/repository"
-	"encoding/base64"
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -31,10 +29,17 @@ func ReadRequestData[T any](r *http.Request, data *T) error {
 	return nil
 }
 
-func HashPassword(pass string) string {
-	h := hmac.New(sha256.New, []byte(config.Secretkey))
-	h.Write([]byte(pass))
-	return base64.URLEncoding.EncodeToString(h.Sum(nil))
+func HashPassword(pass string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
+}
+
+func VerifyPassword(hashedPass string, plainPass string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPass), []byte(plainPass))
+	return err == nil
 }
 
 func BuildJWTString(id int) (string, error) {
@@ -45,7 +50,7 @@ func BuildJWTString(id int) (string, error) {
 		UserID: id,
 	})
 
-	tokenString, err := token.SignedString([]byte(config.Secretkey))
+	tokenString, err := token.SignedString([]byte(config.ProcessConfig.Secretkey))
 	if err != nil {
 		return "", err
 	}

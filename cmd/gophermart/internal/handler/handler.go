@@ -26,7 +26,12 @@ func Register(db repository.Repository, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	creds.Password = HashPassword(creds.Password)
+	creds.Password, err = HashPassword(creds.Password)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	user, err := db.CreateUser(creds)
 	if err != nil {
@@ -64,8 +69,19 @@ func Login(db repository.Repository, w http.ResponseWriter, r *http.Request) {
 		MakeErrResponse(&w, http.StatusBadRequest, "логин или пароль не указаны")
 		return
 	}
-	creds.Password = HashPassword(creds.Password)
-	user, err := db.FindUser(creds)
+	hashedPass, err := HashPassword(creds.Password)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	if !VerifyPassword(hashedPass, creds.Password) {
+		MakeErrResponse(&w, http.StatusUnauthorized, repository.ErrBadCredentials.Error())
+		return
+	}
+
+	user, err := db.FindUser(creds.Login)
 
 	if err != nil {
 		var code int
@@ -118,7 +134,10 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 	}
 
 	order := buildOrder(orderNum)
-	accrual.RegisterOrder(order)
+	regErr := accrual.RegisterOrder(order)
+	if regErr != nil && !errors.Is(regErr, accrual.ErrConflict) {
+		db.InvalidateOrder(orderNum)
+	}
 	worker.CheckChanel <- orderNum
 
 	w.WriteHeader(code)

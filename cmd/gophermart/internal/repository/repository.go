@@ -78,10 +78,11 @@ type ProcessedOrder struct {
 
 type Repository interface {
 	CreateUser(Credentials) (User, error)
-	FindUser(Credentials) (User, error)
+	FindUser(string) (User, error)
 	FindUserOrders(int) ([]Order, error)
 	SaveOrder(int, string) (int, error)
 	UpdateOrder(ProcessedOrder) error
+	InvalidateOrder(string) error
 	GetUserBalance(int) (Balance, error)
 	MakeWithdraw(string, float64, int) (int, error)
 	GetUserWithdrawals(int) ([]Withdrawal, error)
@@ -152,12 +153,12 @@ func (db *DB) CreateUser(creds Credentials) (User, error) {
 	return user, nil
 }
 
-func (db *DB) FindUser(creds Credentials) (User, error) {
+func (db *DB) FindUser(login string) (User, error) {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	var user User
 
-	row := pgdb.QueryRow("SELECT * FROM users WHERE login = $1 AND password = $2;", creds.Login, creds.Password)
+	row := pgdb.QueryRow("SELECT * FROM users WHERE login = $1;", login)
 	errScan := row.Scan(&user.ID, &user.Login, &user.Password)
 	if errScan != nil || row == nil {
 		log.Println(errScan)
@@ -242,6 +243,17 @@ func (db *DB) UpdateOrder(order ProcessedOrder) error {
 	pgdb := db.getPgdb()
 	defer pgdb.Close()
 	_, qErr := pgdb.Exec("UPDATE orders SET accrual = $1, status = $2 WHERE id = $3", order.Accrual, order.Status, order.Number)
+	if qErr != nil {
+		return qErr
+	}
+
+	return nil
+}
+
+func (db *DB) InvalidateOrder(orderNum string) error {
+	pgdb := db.getPgdb()
+	defer pgdb.Close()
+	_, qErr := pgdb.Exec("UPDATE orders SET status = $1 WHERE id = $2", INVALID, orderNum)
 	if qErr != nil {
 		return qErr
 	}
