@@ -42,7 +42,7 @@ func CheckOrder(number string) repository.ProcessedOrder {
 	for _, er := range reqErrors {
 		log.Println("++++ ", er)
 	}
-	if statusCode == http.StatusOK && err != nil {
+	if statusCode == http.StatusOK && len(reqErrors) != 0 {
 		var order repository.ProcessedOrder
 		merr := json.Unmarshal(body, &order)
 		log.Println(merr)
