@@ -221,7 +221,7 @@ func (db *DB) SaveOrder(userID int, orderNum string) (int, error) {
 		}
 	}
 
-	_, qErr := pgdb.Exec("INSERT INTO orders (id, status) VALUES ($1, $2)", orderNum, NEW)
+	_, qErr := pgdb.Exec("INSERT INTO orders (id, status) VALUES ($1, $2)", orderNum, PROCESSING)
 	if qErr != nil {
 		if errors.As(qErr, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			return http.StatusConflict, qErr

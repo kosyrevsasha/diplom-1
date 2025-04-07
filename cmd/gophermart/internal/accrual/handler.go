@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gofiber/fiber/v2"
+	"log"
 	"net/http"
 )
 
@@ -19,7 +20,7 @@ func RegisterRewards(rewards []Reward) error {
 			SetResponse(resp).
 			Bytes()
 		if statusCode != http.StatusOK {
-			return errors.New("Reward registration failed")
+			return errors.New("reward registration failed")
 		}
 	}
 	return nil
@@ -37,10 +38,17 @@ func RegisterOrder(order Order) {
 
 func CheckOrder(number string) repository.ProcessedOrder {
 	resp := fiber.AcquireResponse()
-	statusCode, body, _ := fiber.Get(config.ProcessConfig.Accrual + "/api/orders/" + number).SetResponse(resp).Bytes()
-	if statusCode == http.StatusOK {
+	statusCode, body, reqErrors := fiber.Get(config.ProcessConfig.Accrual + "/api/orders/" + number).SetResponse(resp).Bytes()
+	for _, er := range reqErrors {
+		log.Println("++++ ", er)
+	}
+	if statusCode == http.StatusOK && err != nil {
 		var order repository.ProcessedOrder
-		json.Unmarshal(body, &order)
+		merr := json.Unmarshal(body, &order)
+		log.Println(merr)
+		if merr != nil {
+			return repository.ProcessedOrder{}
+		}
 		return order
 	} else {
 		return repository.ProcessedOrder{}

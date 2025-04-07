@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func Register(db repository.Repository, w http.ResponseWriter, r *http.Request) {
@@ -107,7 +106,6 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TODO: проверять
 	if !luhn.Valid(number) {
 		MakeErrResponse(&w, http.StatusUnprocessableEntity, "неверный формат номера заказа")
 		return
@@ -121,7 +119,6 @@ func ProcessOrder(db repository.Repository, w http.ResponseWriter, r *http.Reque
 
 	order := buildOrder(orderNum)
 	accrual.RegisterOrder(order)
-	time.Sleep(500 * time.Millisecond)
 	worker.CheckChanel <- orderNum
 
 	w.WriteHeader(code)
